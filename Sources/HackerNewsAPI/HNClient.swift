@@ -55,7 +55,7 @@ public final class HNClient {
         return result
     }
     
-    private func getItems(_ itemIDs: [ItemID]) async -> [Item] {
+    public func getItems(_ itemIDs: [ItemID]) async -> [Item] {
         await withTaskGroup(of: Item?.self) { group -> [Item] in
             for itemID in itemIDs {
                 group.addTask { try? await self.getItem(itemID) }
