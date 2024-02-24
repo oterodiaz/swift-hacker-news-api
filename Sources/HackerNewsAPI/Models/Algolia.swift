@@ -7,6 +7,10 @@
 
 import Foundation
 
+public enum SearchType {
+    case exactMatch, mostRecent
+}
+
 struct AlgoliaSearchResults: Codable {
     var hits: [AlgoliaSearchHit]
 }

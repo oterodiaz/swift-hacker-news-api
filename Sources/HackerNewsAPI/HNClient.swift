@@ -17,7 +17,7 @@ public final class HNClient {
     private var decoder = JSONDecoder()
     
     private let hnURL = URL(string: "https://news.ycombinator.com")!
-    private let algoliaURL = URL(string: "https://hn.algolia.com/api/v1/search")!
+    private let algoliaURL = URL(string: "https://hn.algolia.com/api/v1/")!
     
     private init(firebaseOptions: FirebaseOptions? = nil) {
         decoder.dateDecodingStrategy = .secondsSince1970
@@ -85,11 +85,12 @@ public final class HNClient {
         return await getItems(itemIDs)
     }
     
-    public func search(_ query: String) async throws -> [Item] {
+    public func search(_ query: String, by searchType: SearchType = .exactMatch) async throws -> [Item] {
         var components = URLComponents(url: algoliaURL, resolvingAgainstBaseURL: true)
+        components?.path += searchType == .exactMatch ? "search" : "search_by_date"
         components?.queryItems = [
             .init(name: "query", value: query),
-            .init(name: "tags", value: "story")
+            .init(name: "tags", value: "(story,poll)")
         ]
         
         guard let url = components?.url else { throw URLError(.badURL) }
