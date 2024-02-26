@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum HNList: String {
+public enum HNList: String, CaseIterable {
     case topStories
     case bestStories
     case newStories
