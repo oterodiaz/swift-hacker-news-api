@@ -90,7 +90,7 @@ public final class HNClient {
         components?.path += searchType == .exactMatch ? "search" : "search_by_date"
         components?.queryItems = [
             .init(name: "query", value: query),
-            .init(name: "tags", value: "(story,poll)")
+            .init(name: "tags", value: "story")
         ]
         
         guard let url = components?.url else { throw URLError(.badURL) }
