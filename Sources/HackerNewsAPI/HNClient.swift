@@ -63,7 +63,7 @@ public final class HNClient {
         try await withThrowingTaskGroup(of: Item?.self) { group -> [Item] in
             for itemID in itemIDs {
                 try Task.checkCancellation()
-                group.addTask { try? await self.getItem(itemID) }
+                let _ = group.addTaskUnlessCancelled { try? await self.getItem(itemID) }
             }
             
             try Task.checkCancellation()
