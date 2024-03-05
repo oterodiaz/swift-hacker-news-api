@@ -44,6 +44,8 @@ public final class HNClient {
         Logger.network.info("Getting data from \(self.ref.url)/\(path, privacy: .private(mask: .hash))")
         let snapshot = try await ref.child(path).getData()
         
+        try Task.checkCancellation()
+        
         guard
             let data = snapshot.data,
             let result = try? decoder.decode(T.self, from: data)
@@ -52,20 +54,27 @@ public final class HNClient {
             throw URLError(.cannotDecodeRawData)
         }
         
+        try Task.checkCancellation()
+        
         return result
     }
     
-    public func getItems(_ itemIDs: [ItemID]) async -> [Item] {
-        await withTaskGroup(of: Item?.self) { group -> [Item] in
+    public func getItems(_ itemIDs: [ItemID]) async throws -> [Item] {
+        try await withThrowingTaskGroup(of: Item?.self) { group -> [Item] in
             for itemID in itemIDs {
+                try Task.checkCancellation()
                 group.addTask { try? await self.getItem(itemID) }
             }
             
-            let result = await group.reduce(into: [Item]()) { result, element in
+            try Task.checkCancellation()
+            
+            let result = try await group.reduce(into: [Item]()) { result, element in
                 if let element {
                     result.append(element)
                 }
             }
+            
+            try Task.checkCancellation()
             
             return result.sorted { itemIDs.firstIndex(of: $0.id)! < itemIDs.firstIndex(of: $1.id)! }
         }
@@ -82,7 +91,7 @@ public final class HNClient {
     public func getList(_ list: HNList) async throws -> [Item] {
         let itemIDs: [ItemID] = try await get(path: list.rawValue.lowercased())
         
-        return await getItems(itemIDs)
+        return try await getItems(itemIDs)
     }
     
     public func search(_ query: String, by searchType: SearchType = .exactMatch) async throws -> [Item] {
@@ -98,9 +107,14 @@ public final class HNClient {
         Logger.network.info("Searching for \"\(query, privacy: .private(mask: .hash))\"")
         let (data, response) = try await URLSession.shared.data(from: url)
         guard (200...299).contains((response as! HTTPURLResponse).statusCode) else { return [] }
+        
+        try Task.checkCancellation()
+        
         let itemIDs = try decoder.decode(AlgoliaSearchResults.self, from: data).hits.map { $0.storyId }
         
-        return await getItems(itemIDs)
+        try Task.checkCancellation()
+        
+        return try await getItems(itemIDs)
     }
     
     public func isLoggedIn() -> Bool {
@@ -136,9 +150,13 @@ public final class HNClient {
         .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
         .data(using: .utf8)
         
+        try Task.checkCancellation()
+        
         // We bypass the need to provide an authentication token (that would require web scraping)
         // by logging in and performing the action (if any) at the same time.
         logOut()
+        
+        try Task.checkCancellation()
         
         let (_, response) = try await URLSession.shared.data(for: request)
         guard (200...299).contains((response as! HTTPURLResponse).statusCode) else {
