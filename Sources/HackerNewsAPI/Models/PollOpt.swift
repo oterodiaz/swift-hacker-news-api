@@ -11,6 +11,12 @@ public struct PollOpt: Decodable, Identifiable {
     /// The pollOpt's unique ID.
     public let id: ItemID
     
+    /// True if the item is deleted.
+    public let deleted: Bool?
+
+    /// True if the item is dead.
+    public let dead: Bool?
+
     /// The poll the pollOpt belongs to.
     public let poll: ItemID
     

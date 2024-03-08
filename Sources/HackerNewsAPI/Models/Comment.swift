@@ -11,6 +11,12 @@ public struct Comment: Decodable, Identifiable {
     /// The comment's unique ID.
     public let id: ItemID
     
+    /// True if the item is deleted.
+    public let deleted: Bool?
+
+    /// True if the item is dead.
+    public let dead: Bool?
+
     /// The username of the story's author.
     public let by: Username
 

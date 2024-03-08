@@ -11,6 +11,12 @@ public struct Story: Decodable, Identifiable {
     /// The story's unique ID.
     public let id: ItemID
     
+    /// True if the item is deleted.
+    public let deleted: Bool?
+    
+    /// True if the item is dead.
+    public let dead: Bool?
+
     /// The story's total comment count.
     public let descendants: Int
     

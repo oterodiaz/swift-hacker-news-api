@@ -11,6 +11,12 @@ public struct Poll: Decodable, Identifiable {
     /// The poll's unique ID.
     public let id: ItemID
     
+    /// True if the item is deleted.
+    public let deleted: Bool?
+
+    /// True if the item is dead.
+    public let dead: Bool?
+
     /// The poll's total comment count.
     public let descendants: Int
     

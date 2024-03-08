@@ -11,6 +11,12 @@ public struct Job: Decodable, Identifiable {
     /// The job's unique ID.
     public let id: ItemID
     
+    /// True if the item is deleted.
+    public let deleted: Bool?
+
+    /// True if the item is dead.
+    public let dead: Bool?
+
     /// The username of the job poster.
     public let by: Username
     
