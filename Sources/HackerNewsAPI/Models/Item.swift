@@ -35,7 +35,7 @@ public enum Item: Decodable, Identifiable, Hashable {
             self = .comment(try selfContainer.decode(Comment.self))
         case "poll":
             self = .poll(try selfContainer.decode(Poll.self))
-        case "pollOpt":
+        case "pollopt":
             self = .pollOpt(try selfContainer.decode(PollOpt.self))
         default:
             self = .unknown
