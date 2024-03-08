@@ -203,6 +203,23 @@ public enum Item: Decodable, Identifiable, Hashable {
         }
     }
     
+    public var text: String? {
+        switch self {
+        case .job(let job):
+            job.text
+        case .story(let story):
+            story.text
+        case .comment(let comment):
+            comment.text
+        case .poll(let poll):
+            poll.text
+        case .pollOpt(let pollOpt):
+            pollOpt.text
+        default:
+            nil
+        }
+    }
+    
     public var parts: [ItemID]? {
         switch self {
         case .poll(let poll):
