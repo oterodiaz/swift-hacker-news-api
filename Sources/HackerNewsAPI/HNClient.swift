@@ -13,6 +13,7 @@ public final class HNClient {
     public static var shared = HNClient()
     
     private var ref: DatabaseReference
+    private var urlSession: URLSession
     private var decoder = JSONDecoder()
     
     private let hnURL = URL(string: "https://news.ycombinator.com")!
@@ -37,6 +38,12 @@ public final class HNClient {
         // Configure default child `v0` since the HN database URL
         // is `https://hacker-news.firebaseio.com/v0`
         self.ref = Database.database().reference().child("v0")
+        
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 10
+        configuration.timeoutIntervalForResource = 30
+        
+        self.urlSession = URLSession(configuration: configuration)
     }
     
     private func get<T: Decodable>(path: String) async throws -> T {
@@ -104,7 +111,7 @@ public final class HNClient {
         guard let url = components?.url else { throw URLError(.badURL) }
         
         Logger.network.info("Searching for \"\(query, privacy: .private(mask: .hash))\"")
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await urlSession.data(from: url)
         guard (200...299).contains((response as! HTTPURLResponse).statusCode) else { return [] }
         
         try Task.checkCancellation()
@@ -157,7 +164,7 @@ public final class HNClient {
         
         try Task.checkCancellation()
         
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (_, response) = try await urlSession.data(for: request)
         guard (200...299).contains((response as! HTTPURLResponse).statusCode) else {
             throw URLError(.badServerResponse)
         }
