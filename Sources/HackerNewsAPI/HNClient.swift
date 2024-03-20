@@ -10,7 +10,6 @@ import Firebase
 import Foundation
 
 public final class HNClient {
-    
     public static var shared = HNClient()
     
     private var ref: DatabaseReference
@@ -58,7 +57,7 @@ public final class HNClient {
         
         return result
     }
-    
+        
     public func getItems(_ itemIDs: [ItemID]) async throws -> [Item] {
         try await withThrowingTaskGroup(of: Item?.self) { group -> [Item] in
             for itemID in itemIDs {
@@ -79,7 +78,7 @@ public final class HNClient {
             return result.sorted { itemIDs.firstIndex(of: $0.id)! < itemIDs.firstIndex(of: $1.id)! }
         }
     }
-    
+        
     public func getItem(_ itemID: ItemID) async throws -> Item {
         try await get(path: "item/\(itemID)")
     }
@@ -99,7 +98,7 @@ public final class HNClient {
         components?.path += searchType == .exactMatch ? "search" : "search_by_date"
         components?.queryItems = [
             .init(name: "query", value: query),
-            .init(name: "tags", value: "story")
+            .init(name: "tags", value: "(story,poll)")
         ]
         
         guard let url = components?.url else { throw URLError(.badURL) }
@@ -110,7 +109,7 @@ public final class HNClient {
         
         try Task.checkCancellation()
         
-        let itemIDs = try decoder.decode(AlgoliaSearchResults.self, from: data).hits.map { $0.storyId }
+        let itemIDs = try decoder.decode(AlgoliaSearchResults.self, from: data).hits.map { $0.id }
         
         try Task.checkCancellation()
         

@@ -17,7 +17,7 @@ public struct Comment: Decodable, Identifiable {
     /// True if the item is dead.
     public let dead: Bool?
 
-    /// The username of the story's author.
+    /// The username of the comment's author.
     public let by: Username
 
     /// The IDs of the comment's replies, in ranked display order.
