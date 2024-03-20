@@ -109,7 +109,7 @@ public final class HNClient {
         
         try Task.checkCancellation()
         
-        let itemIDs = try decoder.decode(AlgoliaSearchResults.self, from: data).hits.map { $0.id }
+        let itemIDs = try decoder.decode(AlgoliaSearchResults.self, from: data).hits.compactMap { Int($0.id) }
         
         try Task.checkCancellation()
         
