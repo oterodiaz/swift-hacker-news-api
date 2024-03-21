@@ -222,6 +222,19 @@ public final class HNClient {
         )
     }
     
+    public func unvote(username: Username, password: String, itemID: ItemID) async throws {
+        Logger.network.info("Requesting to downvote item \(itemID, privacy: .private(mask: .hash))")
+        try await authenticadedAction(
+            path: "/vote",
+            parameters: [
+                "acct": username,
+                "pw": password,
+                "id": itemID,
+                "how": "un"
+            ]
+        )
+    }
+
     public func fav(username: Username, password: String, itemID: ItemID) async throws {
         Logger.network.info("Requesting to favorite item \(itemID, privacy: .private(mask: .hash))")
         try await authenticadedAction(
