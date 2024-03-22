@@ -9,234 +9,83 @@ import Foundation
 
 public typealias ItemID = Int
 
-public enum Item: Decodable, Identifiable, Hashable {
-    case job(Job)
-    case story(Story)
-    case comment(Comment)
-    case poll(Poll)
-    case pollOpt(PollOpt)
-    case unknown
+public struct Item: Codable, Identifiable, Equatable, Hashable {
+    /// The item's unique id.
+    public var id: ItemID
     
-    enum CodingKeys: String, CodingKey {
-        case type
-    }
+    /// `true` if the item is deleted.
+    public var deleted: Bool?
     
-    public init(from decoder: Decoder) throws {
-        let selfContainer = try decoder.singleValueContainer()
-        let typeContainer = try decoder.container(keyedBy: CodingKeys.self)
-        let type = try typeContainer.decode(String.self, forKey: .type)
-        
-        switch type {
-        case "job":
-            self = .job(try selfContainer.decode(Job.self))
-        case "story":
-            self = .story(try selfContainer.decode(Story.self))
-        case "comment":
-            self = .comment(try selfContainer.decode(Comment.self))
-        case "poll":
-            self = .poll(try selfContainer.decode(Poll.self))
-        case "pollopt":
-            self = .pollOpt(try selfContainer.decode(PollOpt.self))
-        default:
-            self = .unknown
-        }
-    }
+    /// The type of item. One of `job`, `story`, `comment`, `poll`, or `pollopt`.
+    public var type: ItemType?
     
-    public static func == (lhs: Item, rhs: Item) -> Bool {
-        lhs.hashValue == rhs.hashValue
-    }
+    /// The username of the item's author.
+    public var by: Username?
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-
-    public var id: ItemID {
-        switch self {
-        case .job(let job):
-            job.id
-        case .story(let story):
-            story.id
-        case .comment(let comment):
-            comment.id
-        case .poll(let poll):
-            poll.id
-        case .pollOpt(let pollOpt):
-            pollOpt.id
-        case .unknown:
-            UUID().hashValue
-        }
-    }
+    ///Creation date of the item.
+    public var time: Date?
     
-    public var deleted: Bool? {
-        switch self {
-        case .job(let job):
-            job.deleted
-        case .story(let story):
-            story.deleted
-        case .comment(let comment):
-            comment.deleted
-        case .poll(let poll):
-            poll.deleted
-        case .pollOpt(let pollOpt):
-            pollOpt.deleted
-        default:
-            nil
-        }
-    }
+    /// The comment, story or poll text. HTML.
+    public var text: String?
     
-    public var by: Username {
-        switch self {
-        case .job(let job):
-            job.by
-        case .story(let story):
-            story.by
-        case .comment(let comment):
-            comment.by
-        case .poll(let poll):
-            poll.by
-        case .pollOpt(let pollOpt):
-            pollOpt.by
-        default:
-            "[unknown]"
-        }
-    }
+    /// `true` if the item is dead.
+    public var dead: Bool?
     
-    public var time: Date {
-        switch self {
-        case .job(let job):
-            job.time
-        case .story(let story):
-            story.time
-        case .comment(let comment):
-            comment.time
-        case .poll(let poll):
-            poll.time
-        case .pollOpt(let pollOpt):
-            pollOpt.time
-        default:
-            Date.distantPast
-        }
-    }
+    /// The comment's parent: either another comment or the relevant story.
+    public var parent: ItemID?
     
-    public var dead: Bool? {
-        switch self {
-        case .job(let job):
-            job.dead
-        case .story(let story):
-            story.dead
-        case .comment(let comment):
-            comment.dead
-        case .poll(let poll):
-            poll.dead
-        case .pollOpt(let pollOpt):
-            pollOpt.dead
-        default:
-            nil
-        }
-    }
+    /// The pollopt's associated poll.
+    public var poll: ItemID?
     
-    public var parent: ItemID? {
-        switch self {
-        case .comment(let comment):
-            comment.parent
-        default:
-            nil
-        }
-    }
+    /// The ids of the item's comments, in ranked display order.
+    public var kids: [ItemID]?
     
-    public var poll: ItemID? {
-        switch self {
-        case .pollOpt(let pollOpt):
-            pollOpt.poll
-        default:
-            nil
-        }
-    }
+    /// The URL of the story.
+    public var url: URL?
     
-    public var kids: [ItemID]? {
-        switch self {
-        case .story(let story):
-            story.kids
-        case .comment(let comment):
-            comment.kids
-        case .poll(let poll):
-            poll.kids
-        default:
-            nil
-        }
-    }
+    /// The story's score, or the votes for a pollopt.
+    public var score: Int?
     
-    public var url: URL? {
-        switch self {
-        case .job(let job):
-            job.url
-        case .story(let story):
-            story.url
-        default:
-            nil
-        }
-    }
+    /// The title of the story, poll or job. HTML.
+    public var title: String?
     
-    public var score: Int? {
-        switch self {
-        case .story(let story):
-            story.score
-        case .poll(let poll):
-            poll.score
-        case .pollOpt(let pollOpt):
-            pollOpt.score
-        default:
-            nil
-        }
-    }
+    /// A list of related pollopts, in display order.
+    public var parts: [ItemID]?
     
-    public var title: String? {
-        switch self {
-        case .job(let job):
-            job.title
-        case .story(let story):
-            story.title
-        case .poll(let poll):
-            poll.title
-        default:
-            nil
-        }
-    }
+    /// In the case of stories or polls, the total comment count.
+    public var descendants: Int?
     
-    public var text: String? {
-        switch self {
-        case .job(let job):
-            job.text
-        case .story(let story):
-            story.text
-        case .comment(let comment):
-            comment.text
-        case .poll(let poll):
-            poll.text
-        case .pollOpt(let pollOpt):
-            pollOpt.text
-        default:
-            nil
-        }
-    }
-    
-    public var parts: [ItemID]? {
-        switch self {
-        case .poll(let poll):
-            poll.parts
-        default:
-            nil
-        }
-    }
-    
-    public var descendants: Int? {
-        switch self {
-        case .story(let story):
-            story.descendants
-        case .poll(let poll):
-            poll.descendants
-        default:
-            nil
-        }
+    public init(
+        id: ItemID,
+        deleted: Bool? = nil,
+        type: ItemType? = nil,
+        by: Username? = nil,
+        time: Date? = nil,
+        text: String? = nil,
+        dead: Bool? = nil,
+        parent: ItemID? = nil,
+        poll: ItemID? = nil,
+        kids: [ItemID]? = nil,
+        url: URL? = nil,
+        score: Int? = nil,
+        title: String? = nil,
+        parts: [ItemID]? = nil,
+        descendants: Int? = nil
+    ) {
+        self.id = id
+        self.deleted = deleted
+        self.type = type
+        self.by = by
+        self.time = time
+        self.text = text
+        self.dead = dead
+        self.parent = parent
+        self.poll = poll
+        self.kids = kids
+        self.url = url
+        self.score = score
+        self.title = title
+        self.parts = parts
+        self.descendants = descendants
     }
 }
