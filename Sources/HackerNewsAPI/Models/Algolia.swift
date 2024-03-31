@@ -15,6 +15,14 @@ struct AlgoliaSearchResults: Codable {
     var hits: [AlgoliaSearchHit]
 }
 
+struct AlgoliaComment: Codable {
+    var storyID: ItemID
+    
+    enum CodingKeys: String, CodingKey {
+        case storyID = "storyId"
+    }
+}
+
 struct AlgoliaSearchHit: Codable {
     var id: String
     

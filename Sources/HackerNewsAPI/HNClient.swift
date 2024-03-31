@@ -75,6 +75,7 @@ public final class HNClient {
             try Task.checkCancellation()
             
             let result = try await group.reduce(into: [Item]()) { result, element in
+                try Task.checkCancellation()
                 if let element {
                     result.append(element)
                 }
@@ -98,6 +99,31 @@ public final class HNClient {
         let itemIDs: [ItemID] = try await get(path: list.rawValue.lowercased())
         
         return try await getItems(itemIDs)
+    }
+    
+    public func getListIDs(_ list: HNList) async throws -> [ItemID] {
+        let itemIDs: [ItemID] = try await get(path: list.rawValue.lowercased())
+        
+        return itemIDs
+    }
+
+    public func getParentStoryID(ofCommentWithID commentID: ItemID) async throws -> ItemID {
+        var components = URLComponents(url: algoliaURL, resolvingAgainstBaseURL: true)
+        components?.path += "items/\(commentID)"
+        
+        guard let url = components?.url else { throw URLError(.badURL) }
+        
+        Logger.network.info("Getting comment with ID \(commentID, privacy: .private(mask: .hash))")
+        let (data, response) = try await urlSession.data(from: url)
+        guard (200...299).contains((response as! HTTPURLResponse).statusCode) else { throw URLError(.badServerResponse) }
+        
+        try Task.checkCancellation()
+        
+        let parentStoryID = try decoder.decode(AlgoliaComment.self, from: data).storyID
+        
+        try Task.checkCancellation()
+        
+        return parentStoryID
     }
     
     public func search(_ query: String, by searchType: SearchType = .exactMatch) async throws -> [Item] {

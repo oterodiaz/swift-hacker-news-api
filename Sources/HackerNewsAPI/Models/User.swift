@@ -9,7 +9,7 @@ import Foundation
 
 public typealias Username = String
 
-public struct User: Decodable, Identifiable {
+public struct User: Codable, Identifiable, Equatable, Hashable {
     /// The user's unique username.
     public let id: Username
     
