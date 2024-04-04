@@ -23,6 +23,10 @@ let package = Package(
             url: "https://github.com/firebase/firebase-ios-sdk.git",
             .upToNextMajor(from: "10.21.0")
         ),
+        .package(
+            url: "https://github.com/scinfu/SwiftSoup.git",
+            .upToNextMajor(from: "2.7.2")
+        )
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -31,6 +35,7 @@ let package = Package(
             name: "HackerNewsAPI",
             dependencies: [
                 .product(name: "FirebaseDatabase", package: "firebase-ios-sdk"),
+                .product(name: "SwiftSoup", package: "SwiftSoup")
             ]
         ),
         .testTarget(
@@ -38,6 +43,7 @@ let package = Package(
             dependencies: [
                 "HackerNewsAPI",
                 .product(name: "FirebaseDatabase", package: "firebase-ios-sdk"),
+                .product(name: "SwiftSoup", package: "SwiftSoup")
             ]
         ),
     ]

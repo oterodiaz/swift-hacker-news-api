@@ -7,6 +7,7 @@
 
 import OSLog
 import Firebase
+import SwiftSoup
 import Foundation
 
 public final class HNClient {
@@ -149,25 +150,79 @@ public final class HNClient {
         return try await getItems(itemIDs)
     }
     
-    public func isLoggedIn() -> Bool {
-        if let cookies = HTTPCookieStorage.shared.cookies(for: hnURL),
-           !cookies.isEmpty {
-            true
-        } else {
-            false
-        }
+    public func getFavorites(ofUser username: Username, page: Int = 1) async throws -> (itemIDs: [ItemID], reachedLastPage: Bool) {
+        var components = URLComponents(url: hnURL, resolvingAgainstBaseURL: true)
+        components?.path += "/favorites"
+        
+        components?.queryItems = [
+            .init(name: "id", value: username),
+            .init(name: "p", value: String(page))
+        ]
+        
+        guard let url = components?.url else { throw URLError(.badURL) }
+        
+        Logger.network.info("Getting favorites of user \(username, privacy: .private(mask: .hash)), page \(page)")
+        let (data, response) = try await urlSession.data(from: url)
+        guard (200...299).contains((response as! HTTPURLResponse).statusCode) else { throw URLError(.badServerResponse) }
+        
+        try Task.checkCancellation()
+        
+        guard let html = String(data: data, encoding: .utf8) else { throw URLError(.cannotDecodeContentData) }
+        let doc: Document = try SwiftSoup.parse(html)
+        let itemIDs = try doc.select(".athing").compactMap { Int($0.id()) }
+        
+        let moreButton = try doc.select(".morelink")
+        
+        let reachedLastPage = moreButton.isEmpty()
+        
+        return (itemIDs, reachedLastPage)
     }
     
-    public func logOut() {
-        if let cookies = HTTPCookieStorage.shared.cookies(for: hnURL) {
-            cookies.forEach { HTTPCookieStorage.shared.deleteCookie($0) }
+    public func getSubmitted(byUser username: Username, page: Int = 1, next: ItemID? = nil) async throws -> (itemIDs: [ItemID], reachedLastPage: Bool, next: ItemID?) {
+        var components = URLComponents(url: hnURL, resolvingAgainstBaseURL: true)
+        components?.path += "/submitted"
+        
+        components?.queryItems = [
+            .init(name: "id", value: username),
+            .init(name: "n", value: String(30 * (page - 1) + 1))
+        ]
+        
+        if let next {
+            components?.queryItems?.append(.init(name: "next", value: String(next)))
         }
+
+        
+        guard let url = components?.url else { throw URLError(.badURL) }
+        print(url)
+        
+        Logger.network.info("Getting submissions of user \(username, privacy: .private(mask: .hash)), page \(page)")
+        let (data, response) = try await urlSession.data(from: url)
+        guard (200...299).contains((response as! HTTPURLResponse).statusCode) else { throw URLError(.badServerResponse) }
+        
+        try Task.checkCancellation()
+        
+        guard let html = String(data: data, encoding: .utf8) else { throw URLError(.cannotDecodeContentData) }
+        let doc: Document = try SwiftSoup.parse(html)
+        let itemIDs = try doc.select(".athing").compactMap { Int($0.id()) }
+        
+        var nextID: ItemID?
+        let moreButton = try doc.select(".morelink")
+        let reachedLastPage = moreButton.isEmpty()
+        
+        if !reachedLastPage,
+           let href = try? moreButton.attr("href"),
+           let moreURLComponents = URLComponents(string: hnURL.absoluteString + "/" + href),
+           let itemID = moreURLComponents.queryItems?.first(where: { $0.name == "next" })?.value {
+            nextID = Int(itemID)
+        }
+        
+        return (itemIDs, reachedLastPage, nextID)
     }
     
     private func authenticadedAction(
         path: String,
         parameters: [String: Any]
-    ) async throws {
+    ) async throws -> Bool {
         var components = URLComponents(url: hnURL, resolvingAgainstBaseURL: true)
         components?.path = path
         
@@ -194,11 +249,28 @@ public final class HNClient {
         guard (200...299).contains((response as! HTTPURLResponse).statusCode) else {
             throw URLError(.badServerResponse)
         }
+        
+        return isLoggedIn()
+    }
+    
+    public func isLoggedIn() -> Bool {
+        if let cookies = HTTPCookieStorage.shared.cookies(for: hnURL),
+           !cookies.isEmpty {
+            true
+        } else {
+            false
+        }
+    }
+    
+    public func logOut() {
+        if let cookies = HTTPCookieStorage.shared.cookies(for: hnURL) {
+            cookies.forEach { HTTPCookieStorage.shared.deleteCookie($0) }
+        }
     }
     
     public func logIn(username: Username, password: String) async throws -> Bool {
         Logger.network.info("Performing log in request")
-        try await authenticadedAction(
+        return try await authenticadedAction(
             path: "/login",
             parameters: [
                 "goto": "news",
@@ -206,13 +278,11 @@ public final class HNClient {
                 "pw": password
             ]
         )
-        
-        return isLoggedIn()
     }
     
-    public func flag(username: Username, password: String, itemID: ItemID) async throws {
+    public func flag(username: Username, password: String, itemID: ItemID) async throws -> Bool {
         Logger.network.info("Requesting to flag item \(itemID, privacy: .private(mask: .hash))")
-        try await authenticadedAction(
+        return try await authenticadedAction(
             path: "/flag",
             parameters: [
                 "acct": username,
@@ -222,9 +292,9 @@ public final class HNClient {
         )
     }
     
-    public func upvote(username: Username, password: String, itemID: ItemID) async throws {
+    public func upvote(username: Username, password: String, itemID: ItemID) async throws -> Bool {
         Logger.network.info("Requesting to upvote item \(itemID, privacy: .private(mask: .hash))")
-        try await authenticadedAction(
+        return try await authenticadedAction(
             path: "/vote",
             parameters: [
                 "acct": username,
@@ -235,9 +305,9 @@ public final class HNClient {
         )
     }
     
-    public func downvote(username: Username, password: String, itemID: ItemID) async throws {
+    public func downvote(username: Username, password: String, itemID: ItemID) async throws -> Bool {
         Logger.network.info("Requesting to downvote item \(itemID, privacy: .private(mask: .hash))")
-        try await authenticadedAction(
+        return try await authenticadedAction(
             path: "/vote",
             parameters: [
                 "acct": username,
@@ -248,9 +318,9 @@ public final class HNClient {
         )
     }
     
-    public func unvote(username: Username, password: String, itemID: ItemID) async throws {
+    public func unvote(username: Username, password: String, itemID: ItemID) async throws -> Bool {
         Logger.network.info("Requesting to downvote item \(itemID, privacy: .private(mask: .hash))")
-        try await authenticadedAction(
+        return try await authenticadedAction(
             path: "/vote",
             parameters: [
                 "acct": username,
@@ -261,9 +331,9 @@ public final class HNClient {
         )
     }
 
-    public func fav(username: Username, password: String, itemID: ItemID) async throws {
+    public func fav(username: Username, password: String, itemID: ItemID) async throws -> Bool {
         Logger.network.info("Requesting to favorite item \(itemID, privacy: .private(mask: .hash))")
-        try await authenticadedAction(
+        return try await authenticadedAction(
             path: "/fave",
             parameters: [
                 "acct": username,
@@ -274,9 +344,9 @@ public final class HNClient {
     }
     
     
-    public func unfav(username: Username, password: String, itemID: ItemID) async throws {
+    public func unfav(username: Username, password: String, itemID: ItemID) async throws -> Bool {
         Logger.network.info("Requesting to unfavorite item \(itemID, privacy: .private(mask: .hash))")
-        try await authenticadedAction(
+        return try await authenticadedAction(
             path: "/fave",
             parameters: [
                 "acct": username,
@@ -287,9 +357,9 @@ public final class HNClient {
         )
     }
     
-    public func reply(username: Username, password: String, parentID: ItemID, text: String) async throws {
+    public func reply(username: Username, password: String, parentID: ItemID, text: String) async throws -> Bool {
         Logger.network.info("Requesting to reply to item \(parentID, privacy: .private(mask: .hash))")
-        try await authenticadedAction(
+        return try await authenticadedAction(
             path: "/comment",
             parameters: [
                 "acct": username,
